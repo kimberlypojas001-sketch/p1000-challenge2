@@ -119,21 +119,26 @@
 
       <hr />
 
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Category</th>
-              <th>Description</th>
-              <th>Paid by</th>
-              <th class="right">Amount</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="expensesTbody"></tbody>
-        </table>
-      </div>
+      <!-- Desktop table -->
+<div class="tableWrap desktopOnly">
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Category</th>
+        <th>Description</th>
+        <th>Paid by</th>
+        <th class="right">Amount</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="expensesTbody"></tbody>
+  </table>
+</div>
+
+<!-- Mobile cards -->
+<div id="expensesCards" class="cardsWrap mobileOnly"></div>
+
       <p class="muted small">Swipe/scroll if table is wide.</p>
     </section>
   </main>
@@ -141,4 +146,5 @@
   <script src="app.js"></script>
 </body>
 </html>
+
 
