@@ -19,6 +19,8 @@ const els = {
   expenseForm: document.getElementById("expenseForm"),
   clearForm: document.getElementById("clearForm"),
   expensesTbody: document.getElementById("expensesTbody"),
+    expensesCards: document.getElementById("expensesCards"),
+
 
   exportJson: document.getElementById("exportJson"),
   importJson: document.getElementById("importJson"),
@@ -127,10 +129,17 @@ function renderStats(){
 }
 
 function renderTable(){
+  // TABLE (desktop)
   els.expensesTbody.innerHTML = "";
+
+  // CARDS (mobile)
+  if (els.expensesCards) els.expensesCards.innerHTML = "";
+
   const expenses = [...state.expenses].sort((a,b)=> (a.date||"").localeCompare(b.date||""));
 
   for(const e of expenses){
+
+    // Desktop row
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${escapeHtml(e.date || "")}</td>
@@ -143,10 +152,32 @@ function renderTable(){
       </td>
     `;
     els.expensesTbody.appendChild(tr);
+
+    // Mobile card
+    if (els.expensesCards){
+      const card = document.createElement("div");
+      card.className = "expenseCard";
+      card.innerHTML = `
+        <div class="expenseTop">
+          <div>
+            <div><b>${escapeHtml(e.category || "Other")}</b></div>
+            <div class="expenseMeta">${escapeHtml(e.date || "")} • Paid by ${escapeHtml(e.paidBy || "")}</div>
+          </div>
+          <div class="expenseAmt">${peso(e.amount || 0)}</div>
+        </div>
+
+        ${e.desc ? `<div class="expenseDesc">${escapeHtml(e.desc)}</div>` : ""}
+
+        <div class="expenseActions">
+          <button class="ghost" data-del="${e.id}">Delete</button>
+        </div>
+      `;
+      els.expensesCards.appendChild(card);
+    }
   }
 
-  // delete handlers
-  els.expensesTbody.querySelectorAll("button[data-del]").forEach(btn=>{
+  // delete handlers (both table + cards)
+  document.querySelectorAll("button[data-del]").forEach(btn=>{
     btn.addEventListener("click", ()=>{
       const id = btn.getAttribute("data-del");
       state.expenses = state.expenses.filter(x => x.id !== id);
@@ -270,3 +301,4 @@ if("serviceWorker" in navigator){
 
 // Boot
 rerender();
+
