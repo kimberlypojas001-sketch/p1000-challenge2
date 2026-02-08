@@ -193,3 +193,58 @@ th{color:var(--muted); text-align:left; font-weight:700}
     font-size: 13px;
   }
 }
+
+/* Show table on desktop, cards on mobile */
+.desktopOnly { display: block; }
+.mobileOnly { display: none; }
+
+@media (max-width: 600px) {
+  .desktopOnly { display: none; }
+  .mobileOnly { display: block; }
+}
+
+/* Mobile expense cards */
+.cardsWrap { display: grid; gap: 10px; }
+
+.expenseCard{
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(0,0,0,.10);
+}
+
+.expenseTop{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:flex-start;
+}
+
+.expenseAmt{
+  font-weight: 900;
+  font-size: 18px;
+  white-space: nowrap;
+}
+
+.expenseMeta{
+  color: #a7b2d6;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.expenseDesc{
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.expenseActions{
+  margin-top: 10px;
+  display:flex;
+  gap:10px;
+}
+
+.expenseActions button{
+  width: 100%;
+}
