@@ -1,11 +1,14 @@
-// ₱1000 Challenge PWA - local-first spending tracker
-const STORAGE_KEY = "p1000_trip_v1";
+// ₱1000 Challenge PWA - Spending Tracker (mobile-friendly)
+// Works with: index.html + styles.css + manifest.json + service-worker.js
+
+const STORAGE_KEY = "p1000_trip_v2";
 
 const els = {
   budgetPerPerson: document.getElementById("budgetPerPerson"),
   peopleInput: document.getElementById("peopleInput"),
   saveSetup: document.getElementById("saveSetup"),
   resetAll: document.getElementById("resetAll"),
+
   totalBudget: document.getElementById("totalBudget"),
   totalSpent: document.getElementById("totalSpent"),
   moneyLeft: document.getElementById("moneyLeft"),
@@ -18,25 +21,36 @@ const els = {
   desc: document.getElementById("desc"),
   expenseForm: document.getElementById("expenseForm"),
   clearForm: document.getElementById("clearForm"),
-  expensesTbody: document.getElementById("expensesTbody"),
-    expensesCards: document.getElementById("expensesCards"),
 
+  expensesTbody: document.getElementById("expensesTbody"),
+  expensesCards: document.getElementById("expensesCards"),
 
   exportJson: document.getElementById("exportJson"),
   importJson: document.getElementById("importJson"),
 };
 
-function peso(n){
+function peso(n) {
   const v = Number(n || 0);
-  return "₱" + v.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-}
-function todayISO(){
-  const d = new Date();
-  const pad = (x)=> String(x).padStart(2,"0");
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  return "₱" + v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function defaultState(){
+function todayISO() {
+  const d = new Date();
+  const pad = (x) => String(x).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (s) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;",
+  }[s]));
+}
+
+function defaultState() {
   return {
     budgetPerPerson: 1000,
     people: ["Me"],
@@ -44,51 +58,57 @@ function defaultState(){
   };
 }
 
-function load(){
-  try{
+function load() {
+  try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return defaultState();
+    if (!raw) return defaultState();
     const s = JSON.parse(raw);
-    if(!s || !Array.isArray(s.people) || !Array.isArray(s.expenses)) return defaultState();
+    if (!s || !Array.isArray(s.people) || !Array.isArray(s.expenses)) return defaultState();
     return s;
-  }catch{
+  } catch {
     return defaultState();
   }
 }
-function save(){
+
+function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
 let state = load();
 
-function normalizePeople(input){
-  const names = input
+function normalizePeople(input) {
+  const names = (input || "")
     .split(",")
     .map(x => x.trim())
     .filter(Boolean);
+
+  // Prevent empty list
   return names.length ? names : ["Me"];
 }
 
-function totalBudget(){
+function totalBudget() {
   return Number(state.budgetPerPerson || 0) * state.people.length;
 }
-function totalSpent(){
-  return state.expenses.reduce((a,e)=> a + Number(e.amount || 0), 0);
+
+function totalSpent() {
+  return state.expenses.reduce((a, e) => a + Number(e.amount || 0), 0);
 }
 
-function perPersonTotals(){
+function perPersonTotals() {
   const map = {};
-  for(const p of state.people) map[p] = 0;
-  for(const e of state.expenses){
-    if(!map.hasOwnProperty(e.paidBy)) map[e.paidBy] = 0;
-    map[e.paidBy] += Number(e.amount || 0);
+  for (const p of state.people) map[p] = 0;
+
+  for (const e of state.expenses) {
+    const name = e.paidBy || "Unknown";
+    if (!map.hasOwnProperty(name)) map[name] = 0;
+    map[name] += Number(e.amount || 0);
   }
   return map;
 }
 
-function renderPaidBy(){
+function renderPaidBy() {
   els.paidBy.innerHTML = "";
-  for(const p of state.people){
+  for (const p of state.people) {
     const opt = document.createElement("option");
     opt.value = p;
     opt.textContent = p;
@@ -96,7 +116,7 @@ function renderPaidBy(){
   }
 }
 
-function renderStats(){
+function renderStats() {
   const tb = totalBudget();
   const ts = totalSpent();
   const left = tb - ts;
@@ -107,7 +127,8 @@ function renderStats(){
 
   const per = perPersonTotals();
   els.perPerson.innerHTML = "";
-  for(const p of state.people){
+
+  for (const p of state.people) {
     const spent = per[p] || 0;
     const budget = Number(state.budgetPerPerson || 0);
     const remain = budget - spent;
@@ -128,33 +149,33 @@ function renderStats(){
   }
 }
 
-function renderTable(){
-  // TABLE (desktop)
-  els.expensesTbody.innerHTML = "";
-
-  // CARDS (mobile)
+function renderExpenses() {
+  // Desktop table body
+  if (els.expensesTbody) els.expensesTbody.innerHTML = "";
+  // Mobile cards container
   if (els.expensesCards) els.expensesCards.innerHTML = "";
 
-  const expenses = [...state.expenses].sort((a,b)=> (a.date||"").localeCompare(b.date||""));
+  const expenses = [...state.expenses].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
 
-  for(const e of expenses){
+  for (const e of expenses) {
+    const id = e.id;
 
     // Desktop row
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${escapeHtml(e.date || "")}</td>
-      <td>${escapeHtml(e.category || "")}</td>
-      <td>${escapeHtml(e.desc || "")}</td>
-      <td>${escapeHtml(e.paidBy || "")}</td>
-      <td class="right">${peso(e.amount || 0)}</td>
-      <td class="right">
-        <button class="actionBtn" data-del="${e.id}">Delete</button>
-      </td>
-    `;
-    els.expensesTbody.appendChild(tr);
+    if (els.expensesTbody) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${escapeHtml(e.date || "")}</td>
+        <td>${escapeHtml(e.category || "")}</td>
+        <td>${escapeHtml(e.desc || "")}</td>
+        <td>${escapeHtml(e.paidBy || "")}</td>
+        <td class="right">${peso(e.amount || 0)}</td>
+        <td class="right"><button class="actionBtn" data-del="${id}">Delete</button></td>
+      `;
+      els.expensesTbody.appendChild(tr);
+    }
 
     // Mobile card
-    if (els.expensesCards){
+    if (els.expensesCards) {
       const card = document.createElement("div");
       card.className = "expenseCard";
       card.innerHTML = `
@@ -169,58 +190,56 @@ function renderTable(){
         ${e.desc ? `<div class="expenseDesc">${escapeHtml(e.desc)}</div>` : ""}
 
         <div class="expenseActions">
-          <button class="ghost" data-del="${e.id}">Delete</button>
+          <button class="ghost" data-del="${id}">Delete</button>
         </div>
       `;
       els.expensesCards.appendChild(card);
     }
   }
 
-  // delete handlers (both table + cards)
-  document.querySelectorAll("button[data-del]").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
+  // Delete handlers (works for both)
+  document.querySelectorAll("button[data-del]").forEach(btn => {
+    btn.onclick = () => {
       const id = btn.getAttribute("data-del");
       state.expenses = state.expenses.filter(x => x.id !== id);
       save();
       rerender();
-    });
+    };
   });
 }
 
-function rerender(){
-  renderPaidBy();
-  renderStats();
-  renderTable();
-
-  // fill setup inputs
+function rerender() {
+  // Fill setup inputs
   els.budgetPerPerson.value = state.budgetPerPerson ?? 1000;
   els.peopleInput.value = state.people.join(", ");
 
-  // sensible defaults for form
-  if(!els.date.value) els.date.value = todayISO();
-  if(!state.people.includes(els.paidBy.value)){
+  // Form defaults
+  if (!els.date.value) els.date.value = todayISO();
+
+  renderPaidBy();
+
+  // Ensure "Paid by" always has a valid value
+  if (!state.people.includes(els.paidBy.value)) {
     els.paidBy.value = state.people[0] || "Me";
   }
+
+  renderStats();
+  renderExpenses();
 }
 
-function escapeHtml(str){
-  return String(str).replace(/[&<>"']/g, s => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-  }[s]));
-}
+/* ===== EVENTS ===== */
 
-// Setup save
-els.saveSetup.addEventListener("click", ()=>{
+// Save setup
+els.saveSetup.addEventListener("click", () => {
   state.budgetPerPerson = Number(els.budgetPerPerson.value || 0);
   state.people = normalizePeople(els.peopleInput.value || "");
-  // if paidBy in expenses no longer exists, keep it anyway but dropdown will show current people
   save();
   rerender();
 });
 
-// Reset trip
-els.resetAll.addEventListener("click", ()=>{
-  if(confirm("Reset everything? This will clear setup and all expenses on this phone.")){
+// Reset everything
+els.resetAll.addEventListener("click", () => {
+  if (confirm("Reset everything? This clears setup + all expenses on this phone.")) {
     state = defaultState();
     save();
     rerender();
@@ -228,13 +247,16 @@ els.resetAll.addEventListener("click", ()=>{
 });
 
 // Add expense
-els.expenseForm.addEventListener("submit", (ev)=>{
+els.expenseForm.addEventListener("submit", (ev) => {
   ev.preventDefault();
-  const amount = Number(els.amount.value || 0);
-  if(!(amount > 0)) return;
 
-  const e = {
-    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random(),
+  const amount = Number(els.amount.value || 0);
+  if (!(amount > 0)) return;
+
+  const id = (crypto?.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random();
+
+  const expense = {
+    id,
     date: els.date.value || todayISO(),
     category: els.category.value || "Other",
     desc: (els.desc.value || "").trim(),
@@ -242,14 +264,18 @@ els.expenseForm.addEventListener("submit", (ev)=>{
     amount: Math.round(amount * 100) / 100
   };
 
-  state.expenses.push(e);
+  state.expenses.push(expense);
   save();
+
+  // Clear fields
   els.amount.value = "";
   els.desc.value = "";
+
   rerender();
 });
 
-els.clearForm.addEventListener("click", ()=>{
+// Clear form button
+els.clearForm.addEventListener("click", () => {
   els.amount.value = "";
   els.desc.value = "";
   els.date.value = todayISO();
@@ -257,48 +283,52 @@ els.clearForm.addEventListener("click", ()=>{
   els.paidBy.value = state.people[0] || "Me";
 });
 
-// Export / Import
-els.exportJson.addEventListener("click", ()=>{
-  const blob = new Blob([JSON.stringify(state, null, 2)], {type:"application/json"});
+// Export JSON
+els.exportJson.addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
+
   const a = document.createElement("a");
   a.href = url;
   a.download = "p1000-challenge-trip.json";
   document.body.appendChild(a);
   a.click();
   a.remove();
+
   URL.revokeObjectURL(url);
 });
 
-els.importJson.addEventListener("change", async ()=>{
+// Import JSON
+els.importJson.addEventListener("change", async () => {
   const file = els.importJson.files?.[0];
-  if(!file) return;
-  try{
+  if (!file) return;
+
+  try {
     const text = await file.text();
     const incoming = JSON.parse(text);
 
-    if(!incoming || !Array.isArray(incoming.people) || !Array.isArray(incoming.expenses)){
-      alert("Invalid file.");
+    if (!incoming || !Array.isArray(incoming.people) || !Array.isArray(incoming.expenses)) {
+      alert("Invalid JSON file.");
       return;
     }
+
     state = incoming;
     save();
     rerender();
     alert("Imported!");
-  }catch{
+  } catch {
     alert("Could not import file.");
-  }finally{
+  } finally {
     els.importJson.value = "";
   }
 });
 
-// PWA service worker
-if("serviceWorker" in navigator){
-  window.addEventListener("load", ()=>{
-    navigator.serviceWorker.register("./service-worker.js").catch(()=>{});
+/* ===== SERVICE WORKER ===== */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
   });
 }
 
-// Boot
+/* ===== BOOT ===== */
 rerender();
-
