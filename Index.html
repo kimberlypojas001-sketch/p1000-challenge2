@@ -1,17 +1,93 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+
   <title>₱1000 Challenge</title>
+
+  <!-- PWA -->
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#0b1220" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
+
+  <!-- iOS "app-like" -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
   <link rel="stylesheet" href="styles.css" />
+
+  <!-- Mobile-only CSS overrides + card view -->
+  <style>
+    /* Hide the wide table on mobile; show cards instead */
+    .desktopOnly { display: block; }
+    .mobileOnly { display: none; }
+
+    @media (max-width: 768px) {
+      .desktopOnly { display: none !important; }
+      .mobileOnly { display: block !important; }
+
+      body { font-size: 15px; }
+      h1 { font-size: 18px; }
+      h2 { font-size: 16px; }
+
+      .grid { grid-template-columns: 1fr !important; padding: 10px !important; }
+      .card { padding: 12px !important; border-radius: 14px !important; }
+
+      .row { flex-direction: column !important; align-items: stretch !important; }
+      .row2 { grid-template-columns: 1fr !important; }
+
+      input, select { font-size: 16px !important; padding: 12px !important; } /* avoid iOS zoom */
+      button { width: 100% !important; padding: 12px !important; font-size: 15px !important; }
+      button.ghost { width: 100% !important; }
+
+      .stats { grid-template-columns: 1fr !important; }
+      .stat .value { font-size: 20px !important; }
+
+      .personRow { flex-direction: column !important; gap: 6px !important; }
+
+      #installHint { display: none !important; }
+    }
+
+    /* Mobile expense cards */
+    .cardsWrap { display: grid; gap: 12px; margin-top: 6px; }
+    .expenseCard{
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 16px;
+      padding: 14px;
+      background: rgba(0,0,0,.15);
+    }
+    .expenseTop{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+    }
+    .expenseAmt{
+      font-weight: 900;
+      font-size: 18px;
+      white-space: nowrap;
+    }
+    .expenseMeta{
+      color: #a7b2d6;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    .expenseDesc{
+      margin-top: 10px;
+      font-size: 14px;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+    .expenseActions{
+      margin-top: 12px;
+      display:flex;
+      gap:10px;
+    }
+    .expenseActions button{ width: 100%; }
+  </style>
 </head>
+
 <body>
   <header class="top">
     <div>
@@ -22,6 +98,7 @@
   </header>
 
   <main class="grid">
+    <!-- LEFT: Setup + totals -->
     <section class="card">
       <h2>Trip Setup</h2>
 
@@ -32,7 +109,7 @@
 
       <div class="row">
         <label>People (comma-separated names)</label>
-        <input id="peopleInput" placeholder="Kim, Ana, Paolo" />
+        <input id="peopleInput" placeholder="Kimberly, Ana, Paolo" />
       </div>
 
       <div class="row">
@@ -62,16 +139,19 @@
 
       <div class="row exportRow">
         <button class="ghost" id="exportJson">Export JSON</button>
+
         <label class="fileBtn">
           Import JSON
           <input id="importJson" type="file" accept="application/json" />
         </label>
       </div>
+
       <p class="muted small">
-        Tip: Export on one phone, send the file to friends, then Import on their phones so everyone has the same table.
+        Tip: Export on one phone, send the file to friends, then Import on everyone’s phone so you all have the same trip.
       </p>
     </section>
 
+    <!-- RIGHT: Add expense + list -->
     <section class="card">
       <h2>Add Expense</h2>
 
@@ -119,33 +199,30 @@
 
       <hr />
 
-   <!-- Desktop table -->
-<div class="tableWrap desktopOnly">
-  <table>
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Category</th>
-        <th>Description</th>
-        <th>Paid by</th>
-        <th class="right">Amount</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody id="expensesTbody"></tbody>
-  </table>
-</div>
+      <!-- Desktop table -->
+      <div class="tableWrap desktopOnly">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Category</th>
+              <th>Description</th>
+              <th>Paid by</th>
+              <th class="right">Amount</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="expensesTbody"></tbody>
+        </table>
+      </div>
 
-<!-- Mobile cards -->
-<div id="expensesCards" class="cardsWrap mobileOnly"></div>
+      <!-- Mobile cards -->
+      <div id="expensesCards" class="cardsWrap mobileOnly"></div>
 
-      <p class="muted small">Swipe/scroll if table is wide.</p>
+      <p class="muted small desktopOnly">Swipe/scroll if table is wide.</p>
     </section>
   </main>
 
   <script src="app.js"></script>
 </body>
 </html>
-
-
-
